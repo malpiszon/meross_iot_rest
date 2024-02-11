@@ -35,6 +35,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get MerossIot version
+        id: lib-version
+        shell: "bash"
+        run: |
+            endpoint="https://api.github.com/repos/albertogeniola/MerossIot/releases/latest";
+            lib_summary=$(curl -s "${endpoint}");
+            version=$(echo "${lib_summary}" | jq '{"name"} | .name' | tr -d '"' | awk '{print $2}');
+            echo "### MerossIOT version: ${version}" >> $GITHUB_STEP_SUMMARY
+            echo "merossiot_version=${version}" >> $GITHUB_OUTPUT
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -42,6 +52,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=merossiot-${{ steps.lib-version.outputs.merossiot_version }}
             type=sha
 
       - name: Build and push

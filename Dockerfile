@@ -12,6 +12,11 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 FROM python:3.12-alpine AS app
 
+LABEL org.opencontainers.image.base.name=python:3.12-alpine
+LABEL org.opencontainers.image.licenses=MIT
+LABEL org.opencontainers.image.source=https://github.com/malpiszon/meross_iot_rest
+LABEL org.opencontainers.image.title=meross_iot_rest
+
 COPY --from=builder /venv /venv
 ENV PATH=/venv/bin:$PATH
 RUN pip install setuptools

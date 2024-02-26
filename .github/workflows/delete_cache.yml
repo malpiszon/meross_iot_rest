@@ -1,4 +1,4 @@
-name: Delete Github Cache
+name: Delete Github cache
 on:
   workflow_dispatch:
 

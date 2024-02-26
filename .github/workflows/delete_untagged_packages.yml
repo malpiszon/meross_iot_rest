@@ -1,0 +1,17 @@
+name: Delete untagged packages
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 5 * * 5'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete all untagged packages
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: 'meross_iot_rest'
+          package-type: 'container'
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: 'true'

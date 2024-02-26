@@ -66,3 +66,11 @@ jobs:
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=RESTed (Flask with Waitress) example of MerosIot library
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Delete all untagged packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.event.repository.name }}
+          package-type: 'container'
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: 'true'

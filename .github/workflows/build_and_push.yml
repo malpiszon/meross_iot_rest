@@ -9,6 +9,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  BUILD_ARGS: |
+    "PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}"
 
 jobs:
   build:
@@ -43,7 +45,6 @@ jobs:
             endpoint='https://api.github.com/repos/albertogeniola/MerossIot/releases/latest';
             lib_summary=$(curl -s "${endpoint}");
             version=$(echo "${lib_summary}" | jq '{"name"} | .name' | tr -d '"' | awk '{print $2}');
-            echo "### MerossIOT version: ${version}" >> $GITHUB_STEP_SUMMARY
             echo "merossiot_version=${version}" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata
@@ -54,12 +55,15 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=merossiot-${{ steps.lib-version.outputs.merossiot_version }}
+            type=raw,value=python-${{ vars.PYTHON_IMAGE_VERSION }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
+          build-args: |
+            ${{ env.BUILD_ARGS }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -74,3 +78,12 @@ jobs:
           package-type: 'container'
           min-versions-to-keep: 0
           delete-only-untagged-versions: 'true'
+
+      - name: Generate build summary
+        run: |
+          MEROSS_IOT_VERSION=${{ steps.lib-version.outputs.merossiot_version }}
+          PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}
+          echo "### Build variables:"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- MerossIot lib version: ${MEROSS_IOT_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- Python image version: ${PYTHON_IMAGE_VERSION}" >> $GITHUB_STEP_SUMMARY

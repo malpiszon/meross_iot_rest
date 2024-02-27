@@ -1,4 +1,5 @@
-FROM python:3.12-alpine AS builder
+ARG PYTHON_IMAGE_VERSION
+FROM python:${PYTHON_IMAGE_VERSION} AS builder
 
 RUN apk add --no-cache gcc musl-dev libffi-dev
 
@@ -10,9 +11,11 @@ COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 
-FROM python:3.12-alpine AS app
+ARG PYTHON_IMAGE_VERSION
+FROM python:${PYTHON_IMAGE_VERSION} AS app
 
-LABEL org.opencontainers.image.base.name=python:3.12-alpine
+ARG PYTHON_IMAGE_VERSION
+LABEL org.opencontainers.image.base.name="python:${PYTHON_IMAGE_VERSION}"
 LABEL org.opencontainers.image.licenses=MIT
 LABEL org.opencontainers.image.source=https://github.com/malpiszon/meross_iot_rest
 LABEL org.opencontainers.image.title=meross_iot_rest

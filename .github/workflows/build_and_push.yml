@@ -100,7 +100,7 @@ jobs:
           MEROSS_IOT_VERSION=${{ steps.lib-version.outputs.merossiot_version }}
           PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}
           SCHEDULED_RUN=${{ github.event_name == 'schedule' }}
-          PACKAGE_EXISTS=${{ steps.package-version.outputs.package_exists }}
+          PACKAGE_EXISTS=${{ steps.package-version.outputs.package_exists != '0' }}
           echo "### Build variables:"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- MerossIot lib version: ${MEROSS_IOT_VERSION}" >> $GITHUB_STEP_SUMMARY

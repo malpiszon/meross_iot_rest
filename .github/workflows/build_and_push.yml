@@ -57,13 +57,11 @@ jobs:
         run: |
           endpoint='/users/malpiszon/packages/container/meross_iot_rest/versions';
           package_summary=$(gh api "${endpoint}");
-          latest_tags=$(echo "${package_summary}" | jq '.[0].metadata.container.tags');
-          lib_version=${{ steps.lib-version.outputs.merossiot_version }}
-          package_for_version_exists=$(echo "${latest_tags}" | grep -c "${lib_version}")
-          echo "package_exists=${package_for_version_exists}" >> $GITHUB_OUTPUT
+          
+          echo "0" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata
-        if: ${{ (github.event_name != 'schedule') || (steps.lib-version.outputs.package_exists == '0') }}
+        if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -74,7 +72,7 @@ jobs:
             type=raw,value=python-${{ vars.PYTHON_IMAGE_VERSION }}
 
       - name: Build and push
-        if: ${{ (github.event_name != 'schedule') || (steps.lib-version.outputs.package_exists == '0') }}
+        if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -101,7 +99,7 @@ jobs:
           MEROSS_IOT_VERSION=${{ steps.lib-version.outputs.merossiot_version }}
           PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}
           SCHEDULED_RUN=${{ github.event_name == 'schedule' }}
-          PACKAGE_EXISTS=${{ steps.lib-version.outputs.package_exists }}
+          PACKAGE_EXISTS=${{ steps.package-version.outputs.package_exists }}
           echo "### Build variables:"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- MerossIot lib version: ${MEROSS_IOT_VERSION}" >> $GITHUB_STEP_SUMMARY

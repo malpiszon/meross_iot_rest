@@ -59,7 +59,7 @@ jobs:
           package_summary=$(gh api "${endpoint}");
           latest_tags=$(echo "${package_summary}" | jq '.[0].metadata.container.tags');
           lib_version=${{ steps.lib-version.outputs.merossiot_version }}
-          package_for_version_exists=$(echo "${latest_tags}" | grep -c "${lib_version}"
+          package_for_version_exists=$(echo "${latest_tags}" | grep -c "${lib_version}")
           echo "package_exists=${package_for_version_exists}" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata

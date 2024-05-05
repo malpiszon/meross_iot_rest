@@ -57,8 +57,9 @@ jobs:
         run: |
           endpoint='/users/malpiszon/packages/container/meross_iot_rest/versions';
           package_summary=$(gh api "${endpoint}");
-          
-          echo "0" >> $GITHUB_OUTPUT
+          latest_tags=$(echo "${package_summary}" | jq '.[0].metadata.container.tags');
+
+          echo "package_exists=${latest_tags}" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata
         if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}

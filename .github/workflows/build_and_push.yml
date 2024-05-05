@@ -6,6 +6,8 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
+  schedule:
+    - cron: '0 10 * * *'
 
 env:
   REGISTRY: ghcr.io
@@ -46,8 +48,21 @@ jobs:
             lib_summary=$(curl -s "${endpoint}");
             version=$(echo "${lib_summary}" | jq '{"name"} | .name' | tr -d '"' | awk '{print $2}');
             echo "merossiot_version=${version}" >> $GITHUB_OUTPUT
+          
+      - name: Get latest package version
+        id: package-version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          lib_version=${{ steps.lib-version.outputs.merossiot_version }}
+          endpoint='/users/malpiszon/packages/container/meross_iot_rest/versions';
+          package_summary=$(gh api "${endpoint}");
+          package_for_version_exists=$(echo "${package_summary}" | jq '.[0].metadata.container.tags' | grep -c "${lib_version}");
+          echo "package_exists=${package_for_version_exists}" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata
+        if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -58,6 +73,7 @@ jobs:
             type=raw,value=python-${{ vars.PYTHON_IMAGE_VERSION }}
 
       - name: Build and push
+        if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -83,7 +99,11 @@ jobs:
         run: |
           MEROSS_IOT_VERSION=${{ steps.lib-version.outputs.merossiot_version }}
           PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}
+          RUN_TYPE=${{ github.event_name }}
+          NEW_VERSION_PACKAGE=${{ steps.package-version.outputs.package_exists == '0' }}
           echo "### Build variables:"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- MerossIot lib version: ${MEROSS_IOT_VERSION}" >> $GITHUB_STEP_SUMMARY
           echo "- Python image version: ${PYTHON_IMAGE_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- Run type: ${RUN_TYPE}" >> $GITHUB_STEP_SUMMARY
+          echo "- Build for the new lib version: ${NEW_VERSION_PACKAGE}" >> $GITHUB_STEP_SUMMARY

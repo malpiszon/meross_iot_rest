@@ -55,12 +55,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          lib_version=${{ steps.lib-version.outputs.merossiot_version }}
           endpoint='/users/malpiszon/packages/container/meross_iot_rest/versions';
           package_summary=$(gh api "${endpoint}");
-          latest_tags=$(echo "${package_summary}" | jq '.[0].metadata.container.tags');
-          lib_version=${{ steps.lib-version.outputs.merossiot_version }}
-          
-          echo "package_exists=${endpoint}" >> $GITHUB_OUTPUT
+          package_for_version_exists=$(echo "${package_summary}" | jq '.[0].metadata.container.tags' | grep -c "${lib_version}");
+          echo "package_exists=${package_for_version_exists}" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata
         if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}

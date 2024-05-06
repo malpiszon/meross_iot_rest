@@ -101,9 +101,11 @@ jobs:
           PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}
           RUN_TYPE=${{ github.event_name }}
           NEW_VERSION_PACKAGE=${{ steps.package-version.outputs.package_exists == '0' }}
+          NEW_PACKAGE_BUILT=${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
           echo "### Build variables:"
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- MerossIot lib version: ${MEROSS_IOT_VERSION}" >> $GITHUB_STEP_SUMMARY
           echo "- Python image version: ${PYTHON_IMAGE_VERSION}" >> $GITHUB_STEP_SUMMARY
           echo "- Run type: ${RUN_TYPE}" >> $GITHUB_STEP_SUMMARY
           echo "- Build for the new lib version: ${NEW_VERSION_PACKAGE}" >> $GITHUB_STEP_SUMMARY
+          echo "- New package built and pushed: ${NEW_PACKAGE_BUILT}" >> $GITHUB_STEP_SUMMARY

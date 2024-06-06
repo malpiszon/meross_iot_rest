@@ -10,14 +10,13 @@ on:
     - cron: '0 10 * * *'
 
 env:
-  REGISTRY: ghcr.io  
+  REGISTRY: ghcr.io
   BUILD_ARGS: |
     "PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: prod
 
     permissions:
       contents: read

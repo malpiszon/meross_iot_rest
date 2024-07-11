@@ -66,14 +66,7 @@ jobs:
           lib_version=${{ steps.lib-version.outputs.merossiot_version }}
           endpoint='/users/malpiszon/packages/container/meross_iot_rest/versions';
           package_summary=$(gh api "${endpoint}");
-          echo "package summary: ${package_summary}"
-          echo "lib version: ${lib_version}"
-          echo "${package_summary}" | jq '.[0].metadata.container.tags'
-          echo "jq done"
-          echo "$(echo "${package_summary}" | jq '.[0].metadata.container.tags')"
-          echo "${package_summary}" | jq '.[0].metadata.container.tags' | grep -c "${lib_version}"
-          echo "grep done"
-          package_for_version_exists=$(echo "${package_summary}" | jq '.[0].metadata.container.tags' | grep -c "${lib_version}");
+          package_for_version_exists=$(echo "${package_summary}" | jq '.[0].metadata.container.tags' | { grep -c "${lib_version}" || true; } );
           echo "package_exists=${package_for_version_exists}" >> $GITHUB_OUTPUT
 
       - name: Extract Docker metadata

@@ -35,11 +35,7 @@ async def sockets_operation_async(operation, socket_no):
         elif operation == 'off':
             await socket.async_turn_off(channel=socket_no)
         else:
-            status = socket.is_on()
-            if status:
-                await socket.async_turn_off(channel=socket_no)
-            else:
-                await socket.async_turn_on(channel=socket_no)
+            await socket.async_toggle(channel=socket_no)
 
     manager.close()
     await http_api_client.async_logout()

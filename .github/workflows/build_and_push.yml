@@ -84,7 +84,7 @@ jobs:
 
       - name: Build and push
         if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
@@ -112,8 +112,7 @@ jobs:
           RUN_TYPE=${{ github.event_name }}
           NEW_VERSION_PACKAGE=${{ steps.package-version.outputs.package_exists == '0' }}
           NEW_PACKAGE_BUILT=${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
-          echo "### Build variables:"
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Build variables:"
           echo "- MerossIot lib version: ${MEROSS_IOT_VERSION}" >> $GITHUB_STEP_SUMMARY
           echo "- Python image version: ${PYTHON_IMAGE_VERSION}" >> $GITHUB_STEP_SUMMARY
           echo "- Run type: ${RUN_TYPE}" >> $GITHUB_STEP_SUMMARY

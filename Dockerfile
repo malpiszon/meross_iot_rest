@@ -1,4 +1,4 @@
-ARG PYTHON_IMAGE_VERSION=latest
+ARG PYTHON_IMAGE_VERSION=3.11-alpine
 FROM python:${PYTHON_IMAGE_VERSION} AS builder
 
 RUN apk add --no-cache gcc musl-dev libffi-dev
@@ -11,7 +11,7 @@ COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 
-ARG PYTHON_IMAGE_VERSION=latest
+ARG PYTHON_IMAGE_VERSION=3.11-alpine
 FROM python:${PYTHON_IMAGE_VERSION} AS app
 
 ARG PYTHON_IMAGE_VERSION
@@ -22,7 +22,6 @@ LABEL org.opencontainers.image.title=meross_iot_rest
 
 COPY --from=builder /venv /venv
 ENV PATH=/venv/bin:$PATH
-RUN pip install setuptools
 
 RUN adduser -D worker
 USER worker

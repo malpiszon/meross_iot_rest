@@ -172,7 +172,8 @@ if __name__ == '__main__':
     logging.info("Starting Meross initialization.")
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         asyncio_thread = threading.Thread(target=run_asyncio_loop_forever, args=(loop,))
         asyncio_thread.daemon = True

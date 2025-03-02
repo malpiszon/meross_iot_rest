@@ -5,6 +5,7 @@ import os
 import signal
 import threading
 from queue import Queue, Empty
+from typing import Tuple
 from get_docker_secret import get_docker_secret
 
 from flask import Flask, jsonify
@@ -78,7 +79,7 @@ async def devices_operation_async(device, operation, socket_no):
         logging.exception(f"Error during devices operation: {e}")
 
 
-async def run_meross_loop():
+async def initialise_meross() -> Tuple[MerossManager, MerossHttpClient]:
     global meross_initialized
     logging.info("Starting Meross main loop.")
     try:
@@ -98,11 +99,15 @@ async def run_meross_loop():
         await manager.async_device_discovery()
         logging.info("Meross connection initialized successfully.")
         meross_initialized = True
+
+        return manager, http_api_client
     except Exception as e:
         logging.error(f"Failed to initialize Meross connection: {e}")
         meross_initialized = False
         raise
 
+
+async def run_main_meross_loop(manager: MerossManager):
     device = get_device(manager)  # for now only 1 device supported: mss620
 
     logging.info("Starting main Meross operations loop.")
@@ -124,8 +129,11 @@ async def run_meross_loop():
         except Exception as e:
             logging.error(f"Error handling device operation: {e}")
 
+
+async def stop_meross(manager: MerossManager, http_api_client: MerossHttpClient):
+    global meross_initialized
+    logging.info("Stopping Meross main loop.")
     try:
-        logging.info("Stopping Meross main loop.")
         meross_initialized = False
         if manager:
             manager.close()
@@ -134,6 +142,12 @@ async def run_meross_loop():
         logging.info("Meross connection closed.")
     except Exception as e:
         logging.error(f"Error closing manager: {e}")
+
+
+async def run_meross_loop():
+    manager, http_api_client = await initialise_meross()
+    await run_main_meross_loop(manager)
+    await stop_meross(manager, http_api_client)
 
 
 @app.route('/', methods=['GET'])
@@ -172,7 +186,8 @@ if __name__ == '__main__':
     logging.info("Starting Meross initialization.")
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         asyncio_thread = threading.Thread(target=run_asyncio_loop_forever, args=(loop,))
         asyncio_thread.daemon = True

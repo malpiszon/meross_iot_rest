@@ -26,17 +26,22 @@ meross_logger.setLevel(logging.INFO)
 # --- Queue for device operations ---
 device_operations_queue: Queue = Queue()
 # --- App should be stopped by signal ---
-signal_queue = Queue = Queue()
+signal_queue: Queue = Queue()
+# --- Meross initialization flag ---
+meross_initialized = False
 
 app = Flask(__name__)
+
 
 def signal_handler(signum, frame):
     logging.info(f"Signal {signum} received. Starting the shut down process.")
     signal_queue.put(signum)
 
+
 def run_asyncio_loop_forever(asyncio_loop):
     asyncio.set_event_loop(asyncio_loop)
     asyncio_loop.run_forever()
+
 
 def get_device(manager: MerossManager) -> BaseDevice | None:
     # device_type="mss620" - this is a specific model with two outlets.
@@ -51,6 +56,7 @@ def get_device(manager: MerossManager) -> BaseDevice | None:
         return None
 
     return devices[0]
+
 
 async def devices_operation_async(device, operation, socket_no):
     try:
@@ -69,7 +75,9 @@ async def devices_operation_async(device, operation, socket_no):
     except Exception as e:
         logging.exception(f"Error during devices operation: {e}")
 
+
 async def run_meross_loop():
+    global meross_initialized
     logging.info("Starting Meross main loop.")
     try:
         if not EMAIL:
@@ -87,8 +95,10 @@ async def run_meross_loop():
 
         await manager.async_device_discovery()
         logging.info("Meross connection initialized successfully.")
+        meross_initialized = True
     except Exception as e:
         logging.error(f"Failed to initialize Meross connection: {e}")
+        meross_initialized = False
         raise
 
     device = get_device(manager)  # for now only 1 device supported: mss620
@@ -113,6 +123,8 @@ async def run_meross_loop():
             logging.error(f"Error handling device operation: {e}")
 
     try:
+        logging.info("Stopping Meross main loop.")
+        meross_initialized = False
         if manager:
             manager.close()
         if http_api_client:
@@ -122,7 +134,6 @@ async def run_meross_loop():
         logging.error(f"Error closing manager: {e}")
 
 
-
 @app.route('/', methods=['GET'])
 def index():
     return 'Hello to MerossIOT REST!', 200
@@ -130,7 +141,10 @@ def index():
 
 @app.route('/healthcheck', methods=['GET'])
 def healthcheck():
-    return jsonify({"status": "OK"}), 200
+    if meross_initialized:
+        return jsonify({"status": "OK"}), 200
+    else:
+        return jsonify({"status": "Meross loop not initialised"}), 500
 
 
 @app.route('/sockets/<operation>/<socket_no>', methods=['GET'])
@@ -150,7 +164,6 @@ def sockets_operation(operation, socket_no):
 
     device_operations_queue.put((operation, socket_no))
     return jsonify({"status": "Operation queued"}), 202
-
 
 
 if __name__ == '__main__':

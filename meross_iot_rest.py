@@ -4,7 +4,7 @@ import logging
 import os
 import signal
 import threading
-from queue import Queue
+from queue import Queue, Empty
 from get_docker_secret import get_docker_secret
 
 from flask import Flask, jsonify
@@ -26,13 +26,13 @@ meross_logger.setLevel(logging.INFO)
 # --- Queue for device operations ---
 device_operations_queue: Queue = Queue()
 # --- App should be stopped by signal ---
-stop_flag = threading.Event()
+signal_queue = Queue = Queue()
 
 app = Flask(__name__)
 
 def signal_handler(signum, frame):
     logging.info(f"Signal {signum} received. Starting the shut down process.")
-    stop_flag.set()
+    signal_queue.put(signum)
 
 def run_asyncio_loop_forever(asyncio_loop):
     asyncio.set_event_loop(asyncio_loop)
@@ -94,15 +94,23 @@ async def run_meross_loop():
     device = get_device(manager)  # for now only 1 device supported: mss620
 
     logging.info("Starting main Meross operations loop.")
-    while device and not stop_flag.is_set():
+    while device:
         try:
-            operation, socket_no = device_operations_queue.get()
+            signal_data = signal_queue.get(block=False)
+            if signal_data:
+                break
+        except Empty:
+            pass
+
+        try:
+            operation, socket_no = device_operations_queue.get(timeout=1)
             logging.info(f"Handling operation: {operation}, socket: {socket_no}, device: {device.type}")
             await devices_operation_async(device, operation, socket_no)
             device_operations_queue.task_done()
+        except Empty:
+            pass
         except Exception as e:
             logging.error(f"Error handling device operation: {e}")
-        await asyncio.sleep(0.001)  # Don't hog the CPU
 
     try:
         if manager:

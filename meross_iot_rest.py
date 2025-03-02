@@ -19,9 +19,11 @@ PASSWORD = get_docker_secret('meross_password')
 API_BASE_URL = os.environ.get('MEROSS_API_BASE_URL', 'https://iotx-eu.meross.com')  # Default URL
 
 # --- Logging ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-meross_logger = logging.getLogger("meross_iot")
-meross_logger.setLevel(logging.INFO)
+logging_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+root_logger = logging.getLogger()
+for h in root_logger.handlers[:]:
+    h.setFormatter(logging_formatter)
+root_logger.setLevel(logging.INFO)
 
 # --- Queue for device operations ---
 device_operations_queue: Queue = Queue()

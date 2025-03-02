@@ -29,4 +29,4 @@ USER worker
 WORKDIR /app
 COPY --chown=worker:worker meross_iot_rest.py .
 
-CMD ["waitress-serve", "--host", "0.0.0.0", "meross_iot_rest:app"]
+CMD ["python3", "meross_iot_rest.py"]

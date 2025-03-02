@@ -7,9 +7,12 @@
 
 RESTed (Flask with Waitress) example of [MerosIot](https://github.com/albertogeniola/MerossIot) library.
 
-Right now basic and inefficient (connection created and closed on every endpoind call)
+Starts a Meross Manager infinite loop that executes operations received from REST endpoints on available devices.
 
-Secrets taken from Docker secrets (`get-docker-secret` lib).
+- Right now only:
+  - `mss620` device supported.
+  - `on`, `off`, `toggle` operations supported.
+- Secrets taken from Docker secrets (`get-docker-secret` lib).
 
 [GitHubPackageBadge]: https://github.com/malpiszon/meross_iot_rest/actions/workflows/build_and_push.yml/badge.svg
 [GitHubPackageLink]: https://github.com/malpiszon/meross_iot_rest/pkgs/container/meross_iot_rest

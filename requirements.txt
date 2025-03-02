@@ -1,4 +1,4 @@
-Flask>=2.0.2
-meross_iot
-waitress
-get-docker-secret
+flask>=3.0.0
+meross_iot>=0.4.8.0
+waitress>=3.0.2
+get-docker-secret>=2.0.0

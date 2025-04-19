@@ -163,12 +163,13 @@ def healthcheck():
         return jsonify({"status": "Meross loop not initialised"}), 500
 
 
+@app.route('/sockets/<operation>', methods=['GET'])
 @app.route('/sockets/<operation>/<socket_no>', methods=['GET'])
-def sockets_operation(operation, socket_no):
+def sockets_operation(operation, socket_no=0):
     try:
         socket_no = int(socket_no)
-        # For mss620 socket numbers are between 0 and 1
-        if socket_no < 0 or socket_no > 1:
+        # For mss620 socket numbers are between 1 and 2; 0 for all sockets
+        if socket_no < 0 or socket_no > 2:
             return jsonify({"error": "Socket number out of bounds"}), 400
 
         allowed_operations = {"on", "off", "toggle"}

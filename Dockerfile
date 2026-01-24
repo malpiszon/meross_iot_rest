@@ -1,7 +1,7 @@
 ARG PYTHON_IMAGE_VERSION=3.13-alpine
 FROM python:${PYTHON_IMAGE_VERSION} AS builder
 
-RUN apk add --no-cache gcc musl-dev libffi-dev
+RUN apk add --no-cache build-base libffi-dev cmake
 
 RUN python3 -m venv /venv
 ENV PATH=/venv/bin:$PATH

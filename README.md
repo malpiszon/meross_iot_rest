@@ -13,6 +13,23 @@ Starts a Meross Manager infinite loop that executes operations received from RES
   - `mss620` device supported.
   - `on`, `off`, `toggle` operations supported.
 - Secrets taken from Docker secrets (`get-docker-secret` lib).
+- Optional Discord notifications for app lifecycle events and important errors.
+
+## Configuration
+
+Required Docker secrets:
+
+- `meross_email`
+- `meross_password`
+
+Optional Docker secret:
+
+- `discord_webhook_url` - enables Discord notifications when provided.
+
+Optional environment variables:
+
+- `MEROSS_API_BASE_URL` - defaults to `https://iotx-eu.meross.com`.
+- `APP_NAME` - name shown in Discord messages, defaults to `MerossIOT REST`.
 
 [GitHubPackageBadge]: https://github.com/malpiszon/meross_iot_rest/actions/workflows/build_and_push.yml/badge.svg
 [GitHubPackageLink]: https://github.com/malpiszon/meross_iot_rest/pkgs/container/meross_iot_rest

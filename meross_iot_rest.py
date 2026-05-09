@@ -1,10 +1,14 @@
 #!/usr/bin/python3
 import asyncio
+import json
 import logging
 import os
 import signal
 import threading
+import urllib.error
+import urllib.request
 from queue import Queue, Empty
+from datetime import datetime, timezone
 from typing import Tuple
 from get_docker_secret import get_docker_secret
 
@@ -17,7 +21,11 @@ from waitress import serve
 
 EMAIL = get_docker_secret('meross_email')
 PASSWORD = get_docker_secret('meross_password')
+DISCORD_WEBHOOK_URL = get_docker_secret('discord_webhook_url')
 API_BASE_URL = os.environ.get('MEROSS_API_BASE_URL', 'https://iotx-eu.meross.com')  # Default URL
+APP_NAME = os.environ.get('APP_NAME', 'MerossIOT REST')
+DISCORD_COLOR_SUCCESS = 0x2ECC71
+DISCORD_COLOR_ERROR = 0xE74C3C
 
 # --- Logging ---
 logging_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -36,8 +44,51 @@ meross_initialized = False
 app = Flask(__name__)
 
 
+def send_discord_notification(title: str, message: str, color: int) -> None:
+    if not DISCORD_WEBHOOK_URL:
+        return
+
+    payload = {
+        "username": APP_NAME,
+        "embeds": [
+            {
+                "title": title,
+                "description": message,
+                "color": color,
+                "footer": {"text": APP_NAME},
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        ],
+    }
+
+    request = urllib.request.Request(
+        DISCORD_WEBHOOK_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            if response.status >= 400:
+                logging.warning("Discord notification failed with status %s.", response.status)
+    except urllib.error.HTTPError as e:
+        logging.warning("Discord notification failed with status %s.", e.code)
+    except (urllib.error.URLError, TimeoutError, OSError):
+        logging.warning("Discord notification could not be sent.")
+
+
+def notify_business_event(title: str, message: str) -> None:
+    send_discord_notification(title, message, DISCORD_COLOR_SUCCESS)
+
+
+def notify_error(title: str, message: str = "An error occurred. Check the application logs.") -> None:
+    send_discord_notification(title, message, DISCORD_COLOR_ERROR)
+
+
 def signal_handler(signum, frame):
     logging.info(f"Signal {signum} received. Starting the shut down process.")
+    notify_business_event("App shutdown requested", "The MerossIOT REST app received a shutdown signal.")
     signal_queue.put(signum)
 
 
@@ -52,10 +103,12 @@ def get_device(manager: MerossManager) -> BaseDevice | None:
 
     if not devices:
         logging.error(f"No Meross devices found.")
+        notify_error("Meross device unavailable", "No supported online Meross device was found.")
         return None
 
     if len(devices) != 1:
         logging.error(f"Found {len(devices)} devices - should be one.")
+        notify_error("Meross device configuration issue", "More than one supported online Meross device was found.")
         return None
 
     return devices[0]
@@ -75,8 +128,10 @@ async def devices_operation_async(device, operation, socket_no):
             logging.info(f"Toggled socket {socket_no}.")
         else:
             logging.error(f"Invalid operation: {operation}")
+            notify_error("Invalid Meross operation requested", "An unsupported device operation was requested.")
     except Exception as e:
         logging.exception(f"Error during devices operation: {e}")
+        notify_error("Meross device operation failed")
 
 
 async def initialise_meross() -> Tuple[MerossManager, MerossHttpClient]:
@@ -104,6 +159,7 @@ async def initialise_meross() -> Tuple[MerossManager, MerossHttpClient]:
     except Exception as e:
         logging.error(f"Failed to initialize Meross connection: {e}")
         meross_initialized = False
+        notify_error("Meross initialization failed", "The app could not initialize the Meross connection.")
         raise
 
 
@@ -128,6 +184,7 @@ async def run_main_meross_loop(manager: MerossManager):
             pass
         except Exception as e:
             logging.error(f"Error handling device operation: {e}")
+            notify_error("Meross operation handling failed")
 
 
 async def stop_meross(manager: MerossManager, http_api_client: MerossHttpClient):
@@ -142,6 +199,7 @@ async def stop_meross(manager: MerossManager, http_api_client: MerossHttpClient)
         logging.info("Meross connection closed.")
     except Exception as e:
         logging.error(f"Error closing manager: {e}")
+        notify_error("Meross shutdown failed", "The app could not cleanly close the Meross connection.")
 
 
 async def run_meross_loop():
@@ -185,6 +243,7 @@ def sockets_operation(operation, socket_no=0):
 
 if __name__ == '__main__':
     logging.info("Starting Meross initialization.")
+    notify_business_event("App started", "The MerossIOT REST app has started.")
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
     loop = asyncio.new_event_loop()
@@ -197,6 +256,8 @@ if __name__ == '__main__':
         serve(app, host='0.0.0.0', port=8080)
     except Exception as e:
         logging.error(f"Unexpected error {e}")
+        notify_error("Unexpected app error")
     finally:
         logging.info("Shutting down app.")
+        notify_business_event("App stopped", "The MerossIOT REST app is shutting down.")
         loop.stop()

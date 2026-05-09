@@ -1,6 +1,7 @@
 
 import unittest
 from unittest.mock import patch, MagicMock
+import json
 import meross_iot_rest
 from meross_iot_rest import app
 
@@ -62,6 +63,30 @@ class MerossIotRestTestCase(unittest.TestCase):
         response = self.client.get('/sockets/on/3')
         self.assertEqual(response.status_code, 400)
         self.assertIn(b'Socket number out of bounds', response.data)
+
+    @patch('meross_iot_rest.urllib.request.urlopen')
+    def test_discord_notification_skipped_without_webhook(self, mock_urlopen):
+        with patch('meross_iot_rest.DISCORD_WEBHOOK_URL', None):
+            meross_iot_rest.notify_business_event("App started", "The app has started.")
+
+        mock_urlopen.assert_not_called()
+
+    @patch('meross_iot_rest.urllib.request.urlopen')
+    def test_discord_notification_sent_with_app_identity(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.__enter__.return_value.status = 204
+        mock_urlopen.return_value = mock_response
+
+        with patch('meross_iot_rest.DISCORD_WEBHOOK_URL', 'https://discord.example/webhook'), \
+                patch('meross_iot_rest.APP_NAME', 'Meross Test App'):
+            meross_iot_rest.notify_error("Meross initialization failed")
+
+        request = mock_urlopen.call_args.args[0]
+        payload = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(payload["username"], "Meross Test App")
+        self.assertEqual(payload["embeds"][0]["title"], "Meross initialization failed")
+        self.assertEqual(payload["embeds"][0]["description"], "An error occurred. Check the application logs.")
+        self.assertEqual(payload["embeds"][0]["footer"]["text"], "Meross Test App")
 
 if __name__ == '__main__':
     unittest.main()

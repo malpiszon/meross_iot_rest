@@ -93,6 +93,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
             type=raw,value=merossiot-${{ steps.lib-version.outputs.merossiot_version }}
             type=raw,value=python-${{ vars.PYTHON_IMAGE_VERSION }}
 

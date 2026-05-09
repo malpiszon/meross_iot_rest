@@ -113,12 +113,48 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Delete all untagged packages
+        if: github.event_name != 'pull_request'
         uses: actions/delete-package-versions@v5
         with:
           package-name: ${{ github.event.repository.name }}
           package-type: 'container'
           min-versions-to-keep: 0
           delete-only-untagged-versions: 'true'
+
+      - name: Find package versions older than one year
+        id: old-package-versions
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          OWNER_TYPE: ${{ github.event.repository.owner.type }}
+          PACKAGE_NAME: ${{ github.event.repository.name }}
+        run: |
+          cutoff="$(date -u -d '1 year ago' '+%Y-%m-%dT%H:%M:%SZ')"
+          if [ "${OWNER_TYPE}" = "Organization" ]; then
+            endpoint="/orgs/${OWNER}/packages/container/${PACKAGE_NAME}/versions"
+          else
+            endpoint="/users/${OWNER}/packages/container/${PACKAGE_NAME}/versions"
+          fi
+
+          version_ids="$(gh api --paginate "${endpoint}" \
+            | jq -rs "[.[][] | select(.created_at < \"${cutoff}\") | .id] | join(\",\")")"
+
+          echo "version_ids=${version_ids}" >> $GITHUB_OUTPUT
+          if [ -z "${version_ids}" ]; then
+            echo "No package versions older than ${cutoff} found."
+          else
+            echo "Found package versions older than ${cutoff}: ${version_ids}"
+          fi
+
+      - name: Delete package versions older than one year
+        if: github.event_name != 'pull_request' && steps.old-package-versions.outputs.version_ids != ''
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.event.repository.name }}
+          package-type: 'container'
+          package-version-ids: ${{ steps.old-package-versions.outputs.version_ids }}
 
       - name: Generate build summary
         run: |

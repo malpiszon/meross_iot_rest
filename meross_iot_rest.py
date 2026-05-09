@@ -64,7 +64,10 @@ def send_discord_notification(title: str, message: str, color: int) -> None:
     request = urllib.request.Request(
         DISCORD_WEBHOOK_URL,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "meross-iot-rest/1.0",
+        },
         method="POST",
     )
 

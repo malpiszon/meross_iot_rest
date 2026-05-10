@@ -10,8 +10,6 @@ WORKDIR /build
 COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-
-ARG PYTHON_IMAGE_VERSION=3.14-alpine
 FROM python:${PYTHON_IMAGE_VERSION} AS app
 
 ARG PYTHON_IMAGE_VERSION

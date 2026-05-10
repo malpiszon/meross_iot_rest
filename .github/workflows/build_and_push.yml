@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  PYTHON_IMAGE_VERSION: 3.13-alpine
+  PYTHON_IMAGE_VERSION: 3.14-alpine
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
       - name: Set up Python for tests
         uses: actions/setup-python@v4
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       - name: Install dependencies
         run: |

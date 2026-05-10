@@ -11,8 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BUILD_ARGS: |
-    "PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}"
+  PYTHON_IMAGE_VERSION: 3.13-alpine
 
 jobs:
   build:
@@ -45,6 +44,15 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Resolve Python base image
+        id: python-base
+        shell: bash
+        run: |
+          image="python:${PYTHON_IMAGE_VERSION}"
+          digest="$(docker buildx imagetools inspect "${image}" --format '{{.Manifest.Digest}}')"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         if: github.event_name != 'pull_request'
@@ -95,7 +103,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix=sha-
             type=raw,value=merossiot-${{ steps.lib-version.outputs.merossiot_version }}
-            type=raw,value=python-${{ vars.PYTHON_IMAGE_VERSION }}
+            type=raw,value=python-${{ env.PYTHON_IMAGE_VERSION }}
 
       - name: Build and push
         if: ${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
@@ -104,7 +112,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
-            ${{ env.BUILD_ARGS }}
+            "PYTHON_IMAGE_VERSION=${{ env.PYTHON_IMAGE_VERSION }}"
+          pull: true
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -159,13 +168,15 @@ jobs:
       - name: Generate build summary
         run: |
           MEROSS_IOT_VERSION=${{ steps.lib-version.outputs.merossiot_version }}
-          PYTHON_IMAGE_VERSION=${{ vars.PYTHON_IMAGE_VERSION }}
+          PYTHON_IMAGE=${{ steps.python-base.outputs.image }}
+          PYTHON_IMAGE_DIGEST=${{ steps.python-base.outputs.digest }}
           RUN_TYPE=${{ github.event_name }}
           NEW_VERSION_PACKAGE=${{ steps.package-version.outputs.package_exists == '0' }}
           NEW_PACKAGE_BUILT=${{ (github.event_name != 'schedule') || (steps.package-version.outputs.package_exists == '0') }}
           echo "## Build variables:" >> $GITHUB_STEP_SUMMARY
           echo "- MerossIot lib version: ${MEROSS_IOT_VERSION}" >> $GITHUB_STEP_SUMMARY
-          echo "- Python image version: ${PYTHON_IMAGE_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- Python image: ${PYTHON_IMAGE}" >> $GITHUB_STEP_SUMMARY
+          echo "- Python image digest: ${PYTHON_IMAGE_DIGEST}" >> $GITHUB_STEP_SUMMARY
           echo "- Run type: ${RUN_TYPE}" >> $GITHUB_STEP_SUMMARY
           echo "- Build for the new lib version: ${NEW_VERSION_PACKAGE}" >> $GITHUB_STEP_SUMMARY
           echo "- New package built and pushed: ${NEW_PACKAGE_BUILT}" >> $GITHUB_STEP_SUMMARY
